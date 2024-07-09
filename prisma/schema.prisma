@@ -13,11 +13,63 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  MEMBER
+  ADMIN
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String
+  id             Int       @id @default(autoincrement())
+  code           String    @unique
+  name           String
+  email          String
+  password       String
+  token          String?
+  role           Role      @default(MEMBER)
+  penaltyEndDate DateTime? @map("penalty_end_date")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  borrow         Borrow[]
+
+  @@map("users")
+}
+
+model Book {
+  id         Int          @id @default(autoincrement())
+  code       String       @unique
+  title      String
+  author     String
+  stock      Int
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  borrowBook BorrowBook[]
+
+  @@map("books")
+}
+
+model Borrow {
+  id             Int          @id @default(autoincrement())
+  userId         Int          @map("user_id")
+  user           User         @relation(fields: [userId], references: [id])
+  borrowDate     DateTime     @map("borrow_date")
+  returnDate     DateTime     @map("return_date")
+  quantity       Int
+  penaltyApplied Boolean      @map("penalty_applied")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  borrowBook     BorrowBook[]
+
+  @@map("borrows")
+}
+
+model BorrowBook {
+  id        Int      @id @default(autoincrement())
+  borrowId  Int      @map("borrow_id")
+  borrow    Borrow   @relation(fields: [borrowId], references: [id])
+  bookId    Int      @map("book_id")
+  book      Book     @relation(fields: [bookId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("borrow_books")
 }
