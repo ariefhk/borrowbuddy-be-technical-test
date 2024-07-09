@@ -3,7 +3,8 @@ import { API_STATUS_CODE } from "./status-code.helper.js";
 
 export const ROLE = {
   IS_ADMIN: ["ADMIN"],
-  IS_ALL_ROLE: ["ADMIN", "CUSTOMER"],
+  IS_MEMBER: ["MEMBER"],
+  IS_ALL_ROLE: ["ADMIN", "MEMBER"],
 };
 
 export const checkAllowedRole = (roles, role) => {

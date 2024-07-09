@@ -19,30 +19,31 @@ enum Role {
 }
 
 model User {
-  id             Int       @id @default(autoincrement())
-  code           String    @unique
-  name           String
-  email          String
-  password       String
-  token          String?
-  role           Role      @default(MEMBER)
-  penaltyEndDate DateTime? @map("penalty_end_date")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  borrow         Borrow[]
+  id        Int       @id @default(autoincrement())
+  code      String    @unique
+  name      String
+  email     String
+  password  String
+  token     String?
+  role      Role      @default(MEMBER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  borrow    Borrow[]
+  penalty   Penalty[]
 
   @@map("users")
 }
 
 model Book {
-  id         Int          @id @default(autoincrement())
-  code       String       @unique
-  title      String
-  author     String
-  stock      Int
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  borrowBook BorrowBook[]
+  id          Int          @id @default(autoincrement())
+  code        String       @unique
+  title       String
+  author      String
+  stock       Int
+  isAvailable Boolean      @map("is_available")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  borrowBook  BorrowBook[]
 
   @@map("books")
 }
@@ -52,9 +53,8 @@ model Borrow {
   userId         Int          @map("user_id")
   user           User         @relation(fields: [userId], references: [id])
   borrowDate     DateTime     @map("borrow_date")
-  returnDate     DateTime     @map("return_date")
-  quantity       Int
-  penaltyApplied Boolean      @map("penalty_applied")
+  returnDate     DateTime?    @map("return_date")
+  penaltyApplied Boolean      @default(false) @map("penalty_applied")
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   borrowBook     BorrowBook[]
@@ -68,8 +68,21 @@ model BorrowBook {
   borrow    Borrow   @relation(fields: [borrowId], references: [id])
   bookId    Int      @map("book_id")
   book      Book     @relation(fields: [bookId], references: [id])
+  quantity  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("borrow_books")
+}
+
+model Penalty {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  startDate DateTime @default(now())
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("penalties")
 }

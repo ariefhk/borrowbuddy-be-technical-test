@@ -6,8 +6,8 @@ export class UserController {
   static async getAll(req, res, next) {
     try {
       const getAllUserRequest = {
-        name: req?.query?.name,
-        isPenalty: req?.query?.isPenalty,
+        name: req?.query?.name ? String(req.query.name) : null,
+        isPenalty: req?.query?.isPenalty ? Boolean(req.query.isPenalty) : null,
       };
 
       const result = await UserService.getAll(getAllUserRequest);

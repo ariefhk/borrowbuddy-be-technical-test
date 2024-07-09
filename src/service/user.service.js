@@ -49,6 +49,7 @@ export class UserService {
     const { loggedUserRole, isPenalty, name } = request;
 
     checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
+
     const filter = {};
 
     if (isPenalty) {
