@@ -2,7 +2,7 @@ import { db } from "../db/connect.js";
 import { APIError } from "../error/api.error.js";
 import { ROLE, checkAllowedRole } from "../helper/check-role.helper.js";
 import { compareBcryptPassword, createBcryptPassword } from "../helper/hashing.helper.js";
-import { makeJwt } from "../helper/jwt.helper.js";
+import { decodeJwt, makeJwt } from "../helper/jwt.helper.js";
 import { API_STATUS_CODE } from "../helper/status-code.helper.js";
 
 export class UserService {
@@ -32,9 +32,10 @@ export class UserService {
       throw new APIError(API_STATUS_CODE.BAD_REQUEST, "User ID is required");
     }
 
-    const user = await db.user.findUnique({
+    const user = await db.user.findFirst({
       where: {
         id: userId,
+        deletedAt: null,
       },
     });
 
@@ -45,18 +46,40 @@ export class UserService {
     return user;
   }
 
-  static async getAll(request) {
-    const { loggedUserRole, isPenalty, name } = request;
+  static async checkUserToken(token) {
+    // Check if token is existed
+    const existedToken = await db.user.findFirst({
+      where: {
+        token: token,
+      },
+    });
 
+    if (!existedToken) {
+      throw new APIError(API_STATUS_CODE.UNAUTHORIZED, "Unauthorized!");
+    }
+    // Check if token is expired
+    const decodedUser = await decodeJwt(token);
+
+    // Check if user is existed by user id
+    const existedUser = await this.checkUserMustExist(decodedUser.id);
+
+    return {
+      id: existedUser.id,
+      code: existedUser.code,
+      name: existedUser.name,
+      email: existedUser.email,
+      role: existedUser.role,
+      createdAt: existedUser.createdAt,
+    };
+  }
+
+  static async getAll(request) {
+    const { loggedUserRole, name } = request;
     checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
 
-    const filter = {};
-
-    if (isPenalty) {
-      filter.penaltyEndDate = {
-        not: null,
-      };
-    }
+    const filter = {
+      role: "MEMBER",
+    };
 
     if (name) {
       filter.name = {
@@ -76,11 +99,85 @@ export class UserService {
         name: true,
         email: true,
         role: true,
-        penaltyEndDate: true,
+        createdAt: true,
+        deletedAt: true,
+        borrow: {
+          select: {
+            id: true, // Include the id of borrow to ensure structure
+            _count: {
+              select: {
+                borrowBook: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    return users;
+    return users.map((user) => {
+      return {
+        id: user.id,
+        code: user.code,
+        name: user.name,
+        email: user.email,
+        isDeleted: user.deletedAt ? true : false,
+        role: user.role,
+        borrowedBooksCount: user.borrow.reduce((acc, borrow) => acc + borrow._count.borrowBook, 0),
+        createdAt: user.createdAt,
+      };
+    });
+  }
+
+  static async getUserById(request) {
+    const { loggedUserRole, userId } = request;
+    checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
+
+    const user = await db.user.findFirst({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        deletedAt: true,
+        borrow: {
+          select: {
+            id: true, // Include the id of borrow to ensure structure
+            _count: {
+              select: {
+                borrowBook: true,
+              },
+            },
+            borrowBook: {
+              select: {
+                book: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new APIError(API_STATUS_CODE.NOT_FOUND, "User Not Found!");
+    }
+
+    return {
+      id: user.id,
+      code: user.code,
+      name: user.name,
+      email: user.email,
+      isDeleted: user.deletedAt ? true : false,
+      role: user.role,
+      createdAt: user.createdAt,
+      borrowedBooksCount: user.borrow.reduce((acc, borrow) => acc + borrow._count.borrowBook, 0),
+      borrowedBooks: user.borrow.flatMap((borrow) => borrow.borrowBook.map((borrowBook) => borrowBook.book)),
+      createdAt: user.createdAt,
+    };
   }
 
   static async register(request) {
@@ -90,7 +187,43 @@ export class UserService {
       throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Name, Email, Role, and Password fields are required!");
     }
 
-    // Check if user email already registered
+    let registerUser;
+
+    // Check if user email already registered but deleted
+    const existingUserDelete = await db.user.findFirst({
+      where: {
+        email,
+        deletedAt: {
+          not: null,
+        },
+      },
+    });
+
+    // If user email already registered but deleted, then update the user
+    if (existingUserDelete) {
+      registerUser = await db.user.update({
+        where: {
+          id: existingUserDelete.id,
+        },
+        data: {
+          name: name || existingUserDelete.name,
+          email: existingUserDelete.email,
+          role: role || existingUserDelete.role,
+          password: password ? await createBcryptPassword(password) : existingUserDelete.password,
+          deletedAt: null,
+        },
+      });
+
+      return {
+        id: registerUser.id,
+        code: registerUser.code,
+        name: registerUser.name,
+        email: registerUser.email,
+        role: registerUser.role,
+      };
+    }
+
+    // Check if user email already used
     const countUser = await db.user.count({
       where: {
         email,
@@ -107,7 +240,7 @@ export class UserService {
     // make user hashed password
     const hashedPassword = await createBcryptPassword(password);
 
-    const user = await db.user.create({
+    registerUser = await db.user.create({
       data: {
         name,
         email,
@@ -126,11 +259,50 @@ export class UserService {
     });
 
     return {
-      id: user.id,
-      code: user.code,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      id: registerUser.id,
+      code: registerUser.code,
+      name: registerUser.name,
+      email: registerUser.email,
+      role: registerUser.role,
+    };
+  }
+
+  static async recoverUser(request) {
+    const { userId, loggedUserRole } = request;
+    checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
+
+    if (!userId) {
+      throw new APIError(API_STATUS_CODE.BAD_REQUEST, "User Id field is required!");
+    }
+    const existingUserDelete = await db.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: {
+          not: null,
+        },
+      },
+    });
+
+    if (!existingUserDelete) {
+      throw new APIError(API_STATUS_CODE.NOT_FOUND, "User Not Found or still activated!");
+    }
+
+    // If user email already registered but deleted, then update the user
+    const updatedUser = await db.user.update({
+      where: {
+        id: existingUserDelete.id,
+      },
+      data: {
+        deletedAt: null,
+      },
+    });
+
+    return {
+      id: updatedUser.id,
+      code: updatedUser.code,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
     };
   }
 
@@ -144,6 +316,7 @@ export class UserService {
     const existedUser = await db.user.findFirst({
       where: {
         email,
+        deletedAt: null,
       },
     });
 
@@ -184,9 +357,9 @@ export class UserService {
   }
 
   static async update(request) {
-    const { userId, name, email, role, penaltyEndDate, password } = request;
+    const { userId, name, email, password, loggedUserRole } = request;
+    checkAllowedRole(ROLE.IS_ALL_ROLE, loggedUserRole);
 
-    // Check if user is allowed to update
     const existedUser = await this.checkUserMustExist(userId);
 
     // Check if user is allowed to update email
@@ -212,8 +385,6 @@ export class UserService {
       data: {
         name: name || existedUser.name,
         email: email || existedUser.email,
-        role: role || existedUser.role,
-        penaltyEndDate: penaltyEndDate || existedUser.penaltyEndDate,
         password: password ? await createBcryptPassword(password) : existedUser.password,
       },
     });
@@ -223,21 +394,40 @@ export class UserService {
       code: updatedUser.code,
       name: updatedUser.name,
       email: updatedUser.email,
-      role: updatedUser.role,
     };
   }
 
   static async delete(request) {
     const { userId, loggedUserRole } = request;
-
     checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
 
     // Check if user is allowed to delete
     const existedUser = await this.checkUserMustExist(userId);
 
-    await db.user.delete({
+    await db.user.update({
       where: {
         id: existedUser.id,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return true;
+  }
+
+  static async logout(request) {
+    const { userId } = request;
+
+    // Check if user is allowed to delete
+    const existedUser = await this.checkUserMustExist(userId);
+
+    await db.user.update({
+      where: {
+        id: existedUser.id,
+      },
+      data: {
+        token: null,
       },
     });
 

@@ -23,74 +23,18 @@ export class BorrowService {
     return borrow;
   }
 
-  // static async getAll(request) {
-  //   const { loggedUserRole, userId } = request;
-  //   const filter = {};
-  //   checkAllowedRole(ROLE.IS_ALL_ROLE, loggedUserRole);
+  static async validateBorrowBook(request) {
+    const { userId, books } = request;
 
-  //   if (userId) {
-  //     filter.userId = userId;
-  //   }
-
-  //   const borrows = await db.borrow.findMany({
-  //     orderBy: {
-  //       id: "asc",
-  //     },
-  //     where: filter,
-  //     include: {
-  //       borrowBook: {
-  //         include: {
-  //           book: true,
-  //         },
-  //       },
-  //       user: true,
-  //     },
-  //     select: {
-  //       id: true,
-  //       borrowDate: true,
-  //       returnDate: true,
-  //       quantity: true,
-  //       penaltyApplied: true,
-  //       createdAt: true,
-  //     },
-  //   });
-
-  //   return borrows.map((borrow) => {
-  //     return {
-  //       id: borrow.id,
-  //       borrowDate: borrow.borrowDate,
-  //       returnDate: borrow.returnDate,
-  //       penaltyApplied: borrow.penaltyApplied,
-  //       createdAt: borrow.createdAt,
-  //       user: {
-  //         id: borrow.user.id,
-  //         code: borrow.user.code,
-  //         name: borrow.user.name,
-  //       },
-  //       borrowedBook: borrow.borrowBook.map((borrowedBood) => {
-  //         return {
-  //           id: borrowedBood.book.id,
-  //           code: borrowedBood.book.code,
-  //           title: borrowedBood.book.title,
-  //           author: borrowedBood.book.author,
-  //         };
-  //       }),
-  //     };
-  //   });
-  // }
-
-  static async createBorrow(request) {
-    const { loggedUserRole, userId, requestBorrowBook, borrowDate } = request;
-    checkAllowedRole(ROLE.IS_MEMBER, loggedUserRole);
-
-    // Check if order date and return date is empty
-    if (!borrowDate) {
-      throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Borrow date is required!");
+    // Check if userId and books is empty
+    if (!userId || !Array.isArray(books) || books.length === 0) {
+      throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Invalid request format. userId and request books array are required.");
     }
 
     // Check if user is existed
     const existedUser = await UserService.checkUserMustExist(userId);
 
+    // Check if user still have penalty
     const existedUserPenalty = await db.penalty.findMany({
       where: {
         userId: existedUser.id,
@@ -100,7 +44,6 @@ export class BorrowService {
       },
     });
 
-    // Check if user still have penalty
     if (existedUserPenalty?.length > 0) {
       throw new APIError(API_STATUS_CODE.BAD_REQUEST, "User still have penalty, cant rent a book!");
     }
@@ -118,66 +61,210 @@ export class BorrowService {
       throw new APIError(API_STATUS_CODE.BAD_REQUEST, "User still have borrowed book, cant rent a book!");
     }
 
-    // Check if user borrow not empty
-    if (!requestBorrowBook || requestBorrowBook?.length === 0) {
-      throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Books must not empty to borrow!");
+    // check of request borrow book contain bookId
+    for (const book of books) {
+      if (!book.bookId) {
+        throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Each book entry must contain a bookId.");
+      }
     }
 
-    const borrowedBookIds = requestBorrowBook.map((book) => book.bookId);
+    // check if other user borrow the book
+    for (const book of books) {
+      const bookId = book.bookId;
 
-    // Check if user borrow more than 2 books
-    if (borrowedBookIds.length > 2) {
-      throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Books must not more than 2!");
+      const activeBorrow = await db.borrow.findFirst({
+        where: {
+          returnDate: null,
+          borrowBook: {
+            every: {
+              book: {
+                id: bookId,
+                deletedAt: null,
+              },
+            },
+          },
+        },
+        include: {
+          borrowBook: {
+            include: {
+              book: true,
+            },
+          },
+        },
+      });
+
+      if (activeBorrow) {
+        throw new APIError(
+          API_STATUS_CODE.BAD_REQUEST,
+          `Book ${activeBorrow.borrowBook.find((b) => b.id === bookId)?.book?.title} is already borrowed by other user.`
+        );
+      }
     }
 
-    const existedBooks = await db.book.findMany({
+    return {
+      userId: existedUser.id,
+      books,
+    };
+  }
+
+  static async getUserBorrowById(request) {
+    const { loggedUserRole, userId, isAdmin = false } = request;
+
+    if (isAdmin) {
+      checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
+    } else {
+      checkAllowedRole(ROLE.IS_MEMBER, loggedUserRole);
+    }
+
+    const existedUser = await UserService.checkUserMustExist(userId);
+
+    const borrows = await db.borrow.findMany({
+      orderBy: {
+        id: "asc",
+      },
       where: {
-        stock: {
-          gt: 0,
+        userId: existedUser.id,
+      },
+      select: {
+        id: true,
+        borrowDate: true,
+        returnDate: true,
+        user: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
         },
-        id: {
-          in: borrowedBookIds,
+        borrowBook: {
+          select: {
+            book: {
+              select: {
+                id: true,
+                code: true,
+                title: true,
+                author: true,
+              },
+            },
+          },
         },
+        penaltyApplied: true,
+        createdAt: true,
       },
     });
 
-    // Check if book is existed
-    if (!existedBooks || existedBooks.length === 0) {
-      throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Books not found or out of stock!");
-    }
+    return borrows.map((borrow) => {
+      return {
+        id: borrow.id,
+        borrowDate: borrow.borrowDate,
+        returnDate: borrow.returnDate,
+        penaltyApplied: borrow.penaltyApplied,
 
-    // count stock for each book if stock is insufficient
-    const insufficientBookStock = existedBooks.filter((book) => {
-      const borrowedBook = requestBorrowBook.find((b) => b?.bookId === book.id);
+        user: {
+          id: borrow.user.id,
+          code: borrow.user.code,
+          name: borrow.user.name,
+        },
+        borrowedBook: borrow.borrowBook.map((borrowedBood) => {
+          return {
+            id: borrowedBood.book.id,
+            code: borrowedBood.book.code,
+            title: borrowedBood.book.title,
+            author: borrowedBood.book.author,
+          };
+        }),
+        createdAt: borrow.createdAt,
+      };
+    });
+  }
 
-      return book.stock < Number(borrowedBook.quantity);
+  static async getAll(request) {
+    const { loggedUserRole } = request;
+    const filter = {};
+    checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
+
+    const borrows = await db.borrow.findMany({
+      orderBy: {
+        id: "asc",
+      },
+      select: {
+        id: true,
+        borrowDate: true,
+        returnDate: true,
+        user: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        },
+        borrowBook: {
+          select: {
+            book: {
+              select: {
+                id: true,
+                code: true,
+                title: true,
+                author: true,
+              },
+            },
+          },
+        },
+        penaltyApplied: true,
+        createdAt: true,
+      },
     });
 
-    // Check if book stock is insufficient
-    if (insufficientBookStock.length > 0) {
-      const insufficientBookStockDetails = insufficientBookStock.map((book) => ({
-        id: book.id,
-        title: book.title,
-      }));
-      const insufficientBookStockMessage = insufficientBookStockDetails.map((p) => `${p.title} (ID: ${p.id})`).join(", ");
-      throw new APIError(
-        API_STATUS_CODE.BAD_REQUEST,
-        `Insufficient stock for request borrowed book: ${insufficientBookStockMessage}`
-      );
+    return borrows.map((borrow) => {
+      return {
+        id: borrow.id,
+        borrowDate: borrow.borrowDate,
+        returnDate: borrow.returnDate,
+        penaltyApplied: borrow.penaltyApplied,
+
+        user: {
+          id: borrow.user.id,
+          code: borrow.user.code,
+          name: borrow.user.name,
+        },
+        borrowedBook: borrow.borrowBook.map((borrowedBood) => {
+          return {
+            id: borrowedBood.book.id,
+            code: borrowedBood.book.code,
+            title: borrowedBood.book.title,
+            author: borrowedBood.book.author,
+          };
+        }),
+        createdAt: borrow.createdAt,
+      };
+    });
+  }
+
+  static async createBorrow(request) {
+    const { loggedUserRole, userId, requestBorrowBook, borrowDate } = request;
+    // checkAllowedRole(ROLE.IS_MEMBER, loggedUserRole);
+
+    if (!borrowDate) {
+      throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Borrow date is required!");
     }
+
+    const { userId: existedUserId, books: existedRequestBorrowBook } = await this.validateBorrowBook({
+      userId,
+      books: requestBorrowBook,
+    });
 
     // Create borrow book process
     const createBorrowBookProcess = await db.$transaction(async (prismaTrans) => {
       try {
         const createBorrow = await prismaTrans.borrow.create({
           data: {
-            userId: existedUser.id,
+            userId: existedUserId,
             borrowDate: new Date(borrowDate),
             borrowBook: {
-              create: requestBorrowBook.map((book) => {
+              create: existedRequestBorrowBook.map((book) => {
                 return {
                   bookId: book.bookId,
-                  quantity: book.quantity,
+                  quantity: 1,
                 };
               }),
             },
@@ -185,6 +272,9 @@ export class BorrowService {
           select: {
             id: true,
             borrowDate: true,
+            returnDate: true,
+            penaltyApplied: true,
+            createdAt: true,
             user: {
               select: {
                 id: true,
@@ -206,21 +296,15 @@ export class BorrowService {
           },
         });
 
-        for (const book of existedBooks) {
-          // Check if book is available
-          const borrowedBook = requestBorrowBook.find((p) => p?.bookId === book.id);
-
-          // Check if book is available
-          const quantity = Number(borrowedBook.quantity);
-
+        for (const book of existedRequestBorrowBook) {
           await prismaTrans.book.update({
             where: {
-              id: book.id,
+              id: book.bookId,
             },
             data: {
-              isAvailable: book.stock - quantity > 0,
+              isAvailable: false,
               stock: {
-                decrement: quantity,
+                decrement: 1,
               },
             },
           });
@@ -232,24 +316,22 @@ export class BorrowService {
       }
     });
 
-    return createBorrowBookProcess.map((borrow) => {
-      return {
-        id: borrow.id,
-        borrowDate: borrow.borrowDate,
-        user: {
-          id: borrow.user.id,
-          code: borrow.user.code,
-          name: borrow.user.name,
-        },
-        borrowedBook: borrow.borrowBook.map((borrowedBood) => {
-          return {
-            id: borrowedBood.book.id,
-            code: borrowedBood.book.code,
-            title: borrowedBood.book.title,
-          };
-        }),
-      };
-    });
+    return {
+      id: createBorrowBookProcess.id,
+      borrowDate: createBorrowBookProcess.borrowDate,
+      user: {
+        id: createBorrowBookProcess.user.id,
+        code: createBorrowBookProcess.user.code,
+        name: createBorrowBookProcess.user.name,
+      },
+      borrowedBook: createBorrowBookProcess.borrowBook.map((borrowedBood) => {
+        return {
+          id: borrowedBood.book.id,
+          code: borrowedBood.book.code,
+          title: borrowedBood.book.title,
+        };
+      }),
+    };
   }
 
   static async returnBorrow(request) {
@@ -329,14 +411,16 @@ export class BorrowService {
           },
         });
 
+        // Return stock for each book
         for (const borrowedBook of existedBorrow.borrowBook) {
           await prismaTrans.book.update({
             where: {
               id: borrowedBook.bookId,
             },
             data: {
+              isAvailable: true,
               stock: {
-                increment: borrowedBook.quantity,
+                increment: 1,
               },
             },
           });
@@ -367,5 +451,86 @@ export class BorrowService {
         };
       }),
     };
+  }
+
+  static async deleteBorrow(request) {
+    const { loggedUserRole, borrowId } = request;
+    checkAllowedRole(ROLE.IS_MEMBER, loggedUserRole);
+
+    const existedBorrow = await db.borrow.findFirst({
+      where: {
+        id: borrowId,
+        returnDate: null,
+      },
+      include: {
+        borrowBook: {
+          select: {
+            bookId: true,
+            quantity: true,
+          },
+        },
+      },
+    });
+
+    if (!existedBorrow) {
+      throw new APIError(API_STATUS_CODE.NOT_FOUND, "Borrow book record Not Found or already returned!");
+    }
+
+    await db.$transaction(async (prismaTrans) => {
+      try {
+        // Update borrow book process
+        const deleteBorrow = await prismaTrans.borrow.delete({
+          where: {
+            id: existedBorrow.id,
+          },
+          select: {
+            id: true,
+            borrowDate: true,
+            returnDate: true,
+            penaltyApplied: true,
+            user: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+            borrowBook: {
+              select: {
+                book: {
+                  select: {
+                    id: true,
+                    code: true,
+                    title: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // Return stock for each book
+        for (const borrowedBook of existedBorrow.borrowBook) {
+          await prismaTrans.book.update({
+            where: {
+              id: borrowedBook.bookId,
+            },
+            data: {
+              isAvailable: true,
+              stock: {
+                increment: 1,
+              },
+            },
+          });
+        }
+
+        return deleteBorrow;
+      } catch (error) {
+        console.error("Error inside transaction delete borrow:", error.message);
+        throw new APIError(API_STATUS_CODE.BAD_REQUEST, "failed delete borrow!"); // Re-throw to ensure transaction is rolled back
+      }
+    });
+
+    return true;
   }
 }

@@ -28,6 +28,7 @@ model User {
   role      Role      @default(MEMBER)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
   borrow    Borrow[]
   penalty   Penalty[]
 
@@ -43,6 +44,7 @@ model Book {
   isAvailable Boolean      @map("is_available")
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
   borrowBook  BorrowBook[]
 
   @@map("books")

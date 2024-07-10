@@ -24,3 +24,21 @@ export const checkAllowedRole = (roles, role) => {
 
   return true;
 };
+
+export const checkAllowedRoleWithoutThrowError = (roles, role) => {
+  if (!role) {
+    return false;
+  }
+
+  if (!roles) {
+    return false;
+  }
+
+  const isAllowed = roles.includes(role);
+
+  if (!isAllowed) {
+    return false;
+  }
+
+  return true;
+};
