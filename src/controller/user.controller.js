@@ -24,6 +24,7 @@ export class UserController {
         loggedUserRole: req?.loggedUser?.role,
         userId: req?.params?.userId ? Number(req.params.userId) : null,
       };
+      console.log(getUserById);
 
       const result = await UserService.getUserById(getUserById);
 

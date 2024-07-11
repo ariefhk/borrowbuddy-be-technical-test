@@ -52,14 +52,14 @@ export class BorrowController {
     try {
       const createBorrow = {
         loggedUserRole: req?.loggedUser?.role,
-        userId: req?.body?.userId,
+        userId: req?.loggedUser?.id ? Number(req.loggedUser.id) : null,
         requestBorrowBook: req?.body?.requestBorrowBook,
         borrowDate: req?.body?.borrowDate,
       };
 
       const result = await BorrowService.createBorrow(createBorrow);
 
-      return res.status(API_STATUS_CODE.OK).json(ResponseHelper.toJson("Success create Borrow!", result));
+      return res.status(API_STATUS_CODE.CREATED).json(ResponseHelper.toJson("Success create Borrow!", result));
     } catch (error) {
       next(error);
     }
@@ -88,9 +88,9 @@ export class BorrowController {
         borrowId: req?.params?.borrowId ? Number(req.params.borrowId) : null,
       };
 
-      const result = await BorrowService.deleteBorrow(deleteUserBorrowRequest);
+      await BorrowService.deleteBorrow(deleteUserBorrowRequest);
 
-      return res.status(API_STATUS_CODE.OK).json(ResponseHelper.toJson("Success delete Borrow!", result));
+      return res.status(API_STATUS_CODE.OK).json(ResponseHelper.toJson("Success delete Borrow!"));
     } catch (error) {
       next(error);
     }

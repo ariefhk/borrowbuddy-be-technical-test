@@ -37,12 +37,12 @@ export class BookService {
   static async getAllBook(request) {
     const { loggedUserRole, title } = request;
     const filter = {};
-    const selectData = { id: true, title: true, author: true, code: true, stock: true, isAvailable: true, createdAt: true };
+    const selectedData = { id: true, title: true, author: true, code: true, stock: true, isAvailable: true, createdAt: true };
 
     if (checkAllowedRoleWithoutThrowError(ROLE.IS_ADMIN, loggedUserRole)) {
       // if admin, show deleted status
-      selectData.deletedAt = true;
-    } else if (checkAllowedRoleWithoutThrowError(ROLE.IS_MEMBER, loggedUserRole)) {
+      selectedData.deletedAt = true;
+    } else {
       // if not admin, only show active book
       filter.deletedAt = null;
     }
@@ -59,7 +59,7 @@ export class BookService {
         title: "asc",
       },
       where: filter,
-      select: selectData,
+      select: selectedData,
     });
 
     return {
@@ -89,10 +89,8 @@ export class BookService {
           deletedAt: true,
         },
       });
-    }
-
-    if (checkAllowedRoleWithoutThrowError(ROLE.IS_MEMBER, loggedUserRole)) {
-      // if member, only show active book
+    } else {
+      // if member or not logged in, only show active book
       book = await db.book.findFirst({
         where: {
           id: bookId,
@@ -108,6 +106,10 @@ export class BookService {
           createdAt: true,
         },
       });
+    }
+
+    if (!book) {
+      throw new APIError(API_STATUS_CODE.NOT_FOUND, "Book Not Found!");
     }
 
     return book;
@@ -158,11 +160,7 @@ export class BookService {
     const { loggedUserRole, bookId, title, author, code } = request;
     checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
 
-    const existedBook = this.checkBookMustExist(bookId);
-
-    if (!existedBook) {
-      throw new APIError(API_STATUS_CODE.NOT_FOUND, "Book Not Found!");
-    }
+    const existedBook = await this.checkBookMustExist(bookId);
 
     if (code) {
       const existedBookWithSameCode = await db.book.findFirst({

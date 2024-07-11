@@ -1,6 +1,5 @@
 import { db } from "../connect.js";
 import { createBcryptPassword } from "../../helper/hashing.helper.js";
-
 import { UserService } from "../../service/user.service.js";
 
 async function main() {
@@ -13,6 +12,8 @@ async function main() {
       password: await createBcryptPassword("rahasia"),
     },
   });
+
+  console.log("Seed data success!");
 }
 
 main()

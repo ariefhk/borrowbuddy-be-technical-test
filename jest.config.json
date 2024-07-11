@@ -1,0 +1,8 @@
+{
+  "testTimeout": 60000,
+  "testEnvironment": "node",
+  "verbose": true,
+  "transform": {
+    "^.+\\.[t|j]sx?$": "babel-jest"
+  }
+}

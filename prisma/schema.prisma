@@ -22,7 +22,7 @@ model User {
   id        Int       @id @default(autoincrement())
   code      String    @unique
   name      String
-  email     String
+  email     String    @unique
   password  String
   token     String?
   role      Role      @default(MEMBER)
@@ -78,13 +78,13 @@ model BorrowBook {
 }
 
 model Penalty {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
-  startDate DateTime @default(now())
-  endDate   DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  user      User      @relation(fields: [userId], references: [id])
+  startDate DateTime? @default(now())
+  endDate   DateTime? @map("end_date")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("penalties")
 }

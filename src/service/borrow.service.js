@@ -31,6 +31,10 @@ export class BorrowService {
       throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Invalid request format. userId and request books array are required.");
     }
 
+    if (books.length > 2) {
+      throw new APIError(API_STATUS_CODE.BAD_REQUEST, "User can only borrow maximum 2 books!");
+    }
+
     // Check if user is existed
     const existedUser = await UserService.checkUserMustExist(userId);
 
@@ -242,7 +246,7 @@ export class BorrowService {
 
   static async createBorrow(request) {
     const { loggedUserRole, userId, requestBorrowBook, borrowDate } = request;
-    // checkAllowedRole(ROLE.IS_MEMBER, loggedUserRole);
+    checkAllowedRole(ROLE.IS_MEMBER, loggedUserRole);
 
     if (!borrowDate) {
       throw new APIError(API_STATUS_CODE.BAD_REQUEST, "Borrow date is required!");
@@ -360,7 +364,7 @@ export class BorrowService {
     const returnBorrowBookProcess = await db.$transaction(async (prismaTrans) => {
       try {
         // Check if borrow date is more than 7 days
-        const diffTime = Math.abs(new Date() - new Date(existedBorrow.borrowDate));
+        const diffTime = Math.abs(new Date(returnDate) - new Date(existedBorrow.borrowDate));
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays > 7) {
@@ -455,12 +459,11 @@ export class BorrowService {
 
   static async deleteBorrow(request) {
     const { loggedUserRole, borrowId } = request;
-    checkAllowedRole(ROLE.IS_MEMBER, loggedUserRole);
+    checkAllowedRole(ROLE.IS_ADMIN, loggedUserRole);
 
     const existedBorrow = await db.borrow.findFirst({
       where: {
         id: borrowId,
-        returnDate: null,
       },
       include: {
         borrowBook: {
@@ -478,6 +481,30 @@ export class BorrowService {
 
     await db.$transaction(async (prismaTrans) => {
       try {
+        // Return stock for each book if borrow book not returned
+        if (!existedBorrow.returnDate) {
+          for (const borrowedBook of existedBorrow.borrowBook) {
+            await prismaTrans.book.update({
+              where: {
+                id: borrowedBook.bookId,
+              },
+              data: {
+                isAvailable: true,
+                stock: {
+                  increment: 1,
+                },
+              },
+            });
+          }
+        }
+
+        // Delete borrow book process
+        await prismaTrans.borrowBook.deleteMany({
+          where: {
+            borrowId: existedBorrow.id,
+          },
+        });
+
         // Update borrow book process
         const deleteBorrow = await prismaTrans.borrow.delete({
           where: {
@@ -508,21 +535,6 @@ export class BorrowService {
             },
           },
         });
-
-        // Return stock for each book
-        for (const borrowedBook of existedBorrow.borrowBook) {
-          await prismaTrans.book.update({
-            where: {
-              id: borrowedBook.bookId,
-            },
-            data: {
-              isAvailable: true,
-              stock: {
-                increment: 1,
-              },
-            },
-          });
-        }
 
         return deleteBorrow;
       } catch (error) {

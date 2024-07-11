@@ -44,7 +44,7 @@ export class BookController {
 
       const result = await BookService.create(createBook);
 
-      return res.status(API_STATUS_CODE.OK).json(ResponseHelper.toJson("Success Create Book!", result));
+      return res.status(API_STATUS_CODE.CREATED).json(ResponseHelper.toJson("Success Create Book!", result));
     } catch (error) {
       next(error);
     }
