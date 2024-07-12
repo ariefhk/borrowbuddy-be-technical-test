@@ -1,0 +1,2144 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "BorrowBuddy - Backend Technical Test",
+    "description": "This is documentation of backend technical test with borrowing book theme. In this api, i give name BorrowBuddi which implement user, book, borrow, and penalty management. This api cover all of requirement of test including some extras like RBAC, soft delete handling, and penalty management. ",
+    "termsOfService": "http://swagger.io/terms/",
+    "contact": {
+      "email": "apiteam@swagger.io"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "1.0.11"
+  },
+  "externalDocs": {
+    "description": "Find out more about Swagger",
+    "url": "http://swagger.io"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api"
+    }
+  ],
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Operations about authentication"
+    },
+    {
+      "name": "user",
+      "description": "Operations about user"
+    },
+    {
+      "name": "book",
+      "description": "Operations about book"
+    },
+    {
+      "name": "borrow",
+      "description": "Everything about borrow book"
+    },
+    {
+      "name": "penalty",
+      "description": "Everything about managing user penalty"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "(ALL USER) Register user",
+        "operationId": "registerUser",
+        "requestBody": {
+          "description": "Created user object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterUserRequest"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterUserRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessRegisterUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessRegisterUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FailedBadInputRegisterUserResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailedEmailAlreadyExistRegisterUserResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "(ALL USER) Login user",
+        "operationId": "loginUser",
+        "requestBody": {
+          "description": "Login user from exisiting data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUserRequest"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUserRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessLoginUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessLoginUserResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FailedUserNotFoundLoginUserResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "(ALL USER) Logout user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "operationId": "logoutUser",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "(ALL USER) Get current login data",
+        "description": "This can only be done by the logged in user.",
+        "operationId": "getCurrentAuthData",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "(ADMIN) Get all user data",
+        "description": "This can only be done by the admin.",
+        "operationId": "getAllUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllUsersResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllUsersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "(ADMIN) Get specific user data",
+        "description": "This can only be done by the admin.",
+        "operationId": "getUserById",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "useId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserWithBorrowedBookCountAndborrowedBooksObject"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserWithBorrowedBookCountAndborrowedBooksObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "(ALL USER) update user data",
+        "description": "This can only can done by all user which have login.",
+        "operationId": "updateUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "useId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Created user object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateUserResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "(ADMIN) Delete specific user (soft delete)",
+        "description": "This can only be done by admin.",
+        "operationId": "deleteUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "useId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}/recover": {
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "(ADMIN) recover user from deleted",
+        "description": "This can only be done by admin to recover user which have deleted.",
+        "operationId": "recoverUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "useId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoverUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoverUserResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FailedRecoverUserResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books": {
+      "get": {
+        "tags": [
+          "book"
+        ],
+        "summary": "(ALL USER) get all books data",
+        "description": "This can done by all user",
+        "operationId": "getAllBook",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllBooksResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllBooksResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "book"
+        ],
+        "summary": "(ADMIN) create book data",
+        "description": "This can only be done by the logged in user.",
+        "operationId": "createBook",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "Created user object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookRequest"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBookResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Book Already exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FailedCreateBookResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books/{bookId}": {
+      "get": {
+        "tags": [
+          "book"
+        ],
+        "summary": "(ALL USER) get specific book data",
+        "description": "This can only be done by the logged in user.",
+        "operationId": "getBook",
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "description": "The name that needs to be fetched. Use user1 for testing. ",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetBookByIdResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetBookByIdResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "book"
+        ],
+        "summary": "(ADMIN) update book data",
+        "description": "This can only be done by admin",
+        "operationId": "updateBook",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "description": "bookId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Created user object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookRequest"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBookResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBookResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "book"
+        ],
+        "summary": "(ADMIN) delete book data (soft delete)",
+        "description": "This can only be done by admin",
+        "operationId": "deleteBook",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "description": "bookId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteBookResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteBookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books/{bookId}/recover": {
+      "put": {
+        "tags": [
+          "book"
+        ],
+        "summary": "(ADMIN) recover book from deleted",
+        "description": "This can only be done by admin",
+        "operationId": "recoverDeletedBook",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "description": "bookId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoverBookResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoverBookResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Book Not found or already recover",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FailedRecoverBookResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/borrows": {
+      "get": {
+        "tags": [
+          "borrow"
+        ],
+        "summary": "(ADMIN) get all borrow data",
+        "description": "This can only be done by the logged in user.",
+        "operationId": "getAllBorrow",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllBorrowResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllBorrowResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "borrow"
+        ],
+        "summary": "(MEMBER) create borrow data",
+        "description": "This can only be done by the logged in user.",
+        "operationId": "createBorrow",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "Created user object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBorrowRequest"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBorrowRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBorrowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBorrowResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBorrowResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid user borrow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FailedCreateBorrowUserStillHavePenaltyResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailedCreateBorrowUserLimitTwoBookResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailedCreateBorrowUserStillBorrowBookResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailedCreateBorrowBookBorrowedByOtherUserResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/borrows/current": {
+      "get": {
+        "tags": [
+          "borrow"
+        ],
+        "summary": "(MEMBER) get current user borrow data",
+        "description": "This can only be done by the logged in user.",
+        "operationId": "getUserLoggedBorrow",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCurrentUserBorrowResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCurrentUserBorrowResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/borrows/{userId}": {
+      "get": {
+        "tags": [
+          "borrow"
+        ],
+        "summary": "(ADMIN) get specific borrow data",
+        "description": "This can only be done by admin.",
+        "operationId": "getBorrowUserByUserId",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "user id needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserBorrowResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserBorrowResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/borrows/{borrowId}": {
+      "delete": {
+        "tags": [
+          "borrow"
+        ],
+        "summary": "(ADMIN) delete borrow data",
+        "description": "This can only be done by admin.",
+        "operationId": "deleteBorrow",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "borrowId",
+            "in": "path",
+            "description": "borrowId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteBorrowResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteBorrowResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/borrows/{borrowId}/return": {
+      "put": {
+        "tags": [
+          "borrow"
+        ],
+        "summary": "(MEMBER) return user borrowing book",
+        "description": "This can only be done by the logged in user.",
+        "operationId": "returnBorrow",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "returning borrowed books",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnBorrowRequest"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnBorrowRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnBorrowRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "borrowId",
+            "in": "path",
+            "description": "bookId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReturnBorrowResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReturnBorrowResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/penalties": {
+      "get": {
+        "tags": [
+          "penalty"
+        ],
+        "summary": "(ADMIN) get all user penalty",
+        "description": "This can only be admin",
+        "operationId": "getAllPenalty",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllPenaltyUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllPenaltyUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/penalties/users/{userId}": {
+      "get": {
+        "tags": [
+          "penalty"
+        ],
+        "summary": "(ADMIN) get specific user penalty",
+        "description": "This can only be done by admin.",
+        "operationId": "getUserPenaltyByUserId",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "The name that needs to be fetched. Use user1 for testing. ",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllPenaltyCurrentUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllPenaltyCurrentUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/penalties/users/current": {
+      "get": {
+        "tags": [
+          "penalty"
+        ],
+        "summary": "(MEMBER) get current user logged penalty",
+        "description": "This can only be done by admin.",
+        "operationId": "getUserPenaltyByLoggedUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllPenaltyCurrentUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllPenaltyCurrentUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/penalties/{penaltyId}": {
+      "put": {
+        "tags": [
+          "penalty"
+        ],
+        "summary": "(ADMIN) update penalty",
+        "description": "This can only be admin.",
+        "operationId": "updatePenalty",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "Created user object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePenaltyRequest"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePenaltyRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePenaltyRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "penaltyId",
+            "in": "path",
+            "description": "penaltyId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatePenaltyUserResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatePenaltyUserResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "penalty"
+        ],
+        "summary": "(ADMIN) delete penalty",
+        "description": "This can only be done by admin.",
+        "operationId": "deletePenalty",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "penaltyId",
+            "in": "path",
+            "description": "PenaltyId is needed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePenaltyResponse"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePenaltyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UserObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "M001"
+          },
+          "name": {
+            "type": "string",
+            "example": "user"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@gmail.com"
+          },
+          "role": {
+            "type": "string",
+            "example": "MEMBER"
+          }
+        }
+      },
+      "LessUserObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "M001"
+          },
+          "name": {
+            "type": "string",
+            "example": "user"
+          }
+        }
+      },
+      "UserWithTokenObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "M001"
+          },
+          "name": {
+            "type": "string",
+            "example": "user"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@gmail.com"
+          },
+          "role": {
+            "type": "string",
+            "example": "MEMBER"
+          },
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MiwiaWF0IjoxNzIwNjk0MDkxLCJleHAiOjE3MjEyOTg4OTF9.kYvuuwjyO-3LVsRwl0WQo6tfMAP1X9cozfSjeLZmrhw"
+          }
+        }
+      },
+      "UserWithBorrowedBookCountObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "M001"
+          },
+          "name": {
+            "type": "string",
+            "example": "user"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@gmail.com"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "example": false
+          },
+          "role": {
+            "type": "string",
+            "example": "MEMBER"
+          },
+          "borrowedBooksCount": {
+            "type": "number",
+            "example": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-07-11T09:32:38.328Z"
+          }
+        }
+      },
+      "UserWithBorrowedBookCountAndborrowedBooksObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "M001"
+          },
+          "name": {
+            "type": "string",
+            "example": "user"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@gmail.com"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "example": false
+          },
+          "role": {
+            "type": "string",
+            "example": "MEMBER"
+          },
+          "borrowedBooksCount": {
+            "type": "number",
+            "example": 0
+          },
+          "borrowedBooks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookObject"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-07-11T09:32:38.328Z"
+          }
+        }
+      },
+      "RegisterUserRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "user"
+          },
+          "email": {
+            "type": "string",
+            "example": "user@email.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "rahasia"
+          }
+        }
+      },
+      "SuccessRegisterUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success register User!"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserObject"
+          }
+        }
+      },
+      "FailedBadInputRegisterUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Name, Email, Role, and Password fields are required!"
+          }
+        }
+      },
+      "FailedEmailAlreadyExistRegisterUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Email already exists!"
+          }
+        }
+      },
+      "LoginUserRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@email.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "rahasia"
+          }
+        }
+      },
+      "SuccessLoginUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success login User!"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserWithTokenObject"
+          }
+        }
+      },
+      "FailedUserNotFoundLoginUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "User Not Found!"
+          }
+        }
+      },
+      "LogoutUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success logout User!"
+          }
+        }
+      },
+      "CurrentUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get current User!"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserObject"
+          }
+        }
+      },
+      "GetAllUsersResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get all User!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserWithBorrowedBookCountObject"
+            }
+          }
+        }
+      },
+      "GetUsersByIdResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get User By Id!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserWithBorrowedBookCountObject"
+            }
+          }
+        }
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "user"
+          },
+          "email": {
+            "type": "string",
+            "example": "user@email.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "rahasia"
+          }
+        }
+      },
+      "UpdateUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success update User!"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserObject"
+          }
+        }
+      },
+      "DeleteUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success delete User!"
+          }
+        }
+      },
+      "RecoverUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success Recover User!"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserObject"
+          }
+        }
+      },
+      "FailedRecoverUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "User Not Found or still activated!"
+          }
+        }
+      },
+      "GetUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get user!"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserObject"
+          }
+        }
+      },
+      "BookObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "example": "Buku"
+          },
+          "author": {
+            "type": "string",
+            "example": "Arief"
+          },
+          "code": {
+            "type": "string",
+            "example": "BOOK-1"
+          },
+          "stock": {
+            "type": "number",
+            "example": 1
+          },
+          "isAvailable": {
+            "type": "boolean",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-07-11T09:32:38.328Z"
+          }
+        }
+      },
+      "LessBookObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "example": "Buku"
+          },
+          "author": {
+            "type": "string",
+            "example": "Arief"
+          }
+        }
+      },
+      "GetAllBooksResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get all Book!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookObject"
+            }
+          }
+        }
+      },
+      "GetBookByIdResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get Book By Id!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookObject"
+            }
+          }
+        }
+      },
+      "CreateBookRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "BOOK-1"
+          },
+          "title": {
+            "type": "string",
+            "example": "Buku"
+          },
+          "author": {
+            "type": "string",
+            "example": "Arief"
+          }
+        }
+      },
+      "CreateBookResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success Create Book!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookObject"
+            }
+          }
+        }
+      },
+      "FailedCreateBookResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Code of Book already exists!"
+          }
+        }
+      },
+      "UpdateBookResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success Update Book!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookObject"
+            }
+          }
+        }
+      },
+      "RecoverBookResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success Recover Book!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookObject"
+            }
+          }
+        }
+      },
+      "FailedRecoverBookResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Book Not Found or still activated!"
+          }
+        }
+      },
+      "DeleteBookResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success Delete Book!"
+          }
+        }
+      },
+      "BorrowObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "borrowDate": {
+            "type": "string",
+            "example": "2024-07-11T00:00:00.000Z"
+          },
+          "returnDate": {
+            "type": "string",
+            "example": "2024-07-25T00:00:00.000Z"
+          },
+          "penaltyApplied": {
+            "type": "boolean",
+            "example": true
+          },
+          "user": {
+            "type": "object",
+            "$ref": "#/components/schemas/LessUserObject"
+          },
+          "borrowedBook": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LessBookObject"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-07-11T09:32:38.328Z"
+          }
+        }
+      },
+      "NotReturnedBorrowObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "borrowDate": {
+            "type": "string",
+            "example": "2024-07-11T00:00:00.000Z"
+          },
+          "returnDate": {
+            "type": "string",
+            "example": null
+          },
+          "penaltyApplied": {
+            "type": "boolean",
+            "example": true
+          },
+          "user": {
+            "type": "object",
+            "$ref": "#/components/schemas/LessUserObject"
+          },
+          "borrowedBook": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LessBookObject"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-07-11T09:32:38.328Z"
+          }
+        }
+      },
+      "CreateBorrowObject": {
+        "type": "object",
+        "properties": {
+          "bookId": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "GetAllBorrowResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get all Borrow!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BorrowObject"
+            }
+          }
+        }
+      },
+      "GetCurrentUserBorrowResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get current user Borrow!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BorrowObject"
+            }
+          }
+        }
+      },
+      "CreateBorrowRequest": {
+        "type": "object",
+        "properties": {
+          "borrowDate": {
+            "type": "string",
+            "example": "2024-07-11T00:00:00.000Z"
+          },
+          "requestBorrowBook": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateBorrowObject"
+            }
+          }
+        }
+      },
+      "CreateBorrowResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success create Borrow!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotReturnedBorrowObject"
+            }
+          }
+        }
+      },
+      "FailedCreateBorrowUserStillBorrowBookResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "User still have borrowed book, cant rent a book!"
+          }
+        }
+      },
+      "FailedCreateBorrowUserStillHavePenaltyResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "User still have penalty, cant rent a book!"
+          }
+        }
+      },
+      "FailedCreateBorrowUserLimitTwoBookResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "User can only borrow maximum 2 books!"
+          }
+        }
+      },
+      "FailedCreateBorrowBookBorrowedByOtherUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Book is already borrowed by other user."
+          }
+        }
+      },
+      "ReturnBorrowRequest": {
+        "type": "object",
+        "properties": {
+          "returnDate": {
+            "type": "string",
+            "example": "2024-07-25T00:00:00.000Z"
+          }
+        }
+      },
+      "ReturnBorrowResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success return Borrow!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BorrowObject"
+            }
+          }
+        }
+      },
+      "DeleteBorrowResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success Delete Borrow!"
+          }
+        }
+      },
+      "GetUserBorrowResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get user Borrow!"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BorrowObject"
+            }
+          }
+        }
+      },
+      "PenaltyObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2024-07-11T00:00:00.000Z"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2024-07-14T10:09:25.265Z"
+          },
+          "user": {
+            "type": "object",
+            "$ref": "#/components/schemas/LessUserObject"
+          }
+        }
+      },
+      "GetAllPenaltyResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get all penalty users !"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PenaltyObject"
+            }
+          }
+        }
+      },
+      "GetAllPenaltyCurrentUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get penalty current users !"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PenaltyObject"
+            }
+          }
+        }
+      },
+      "GetAllPenaltyUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success get penalty users !"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PenaltyObject"
+            }
+          }
+        }
+      },
+      "UpdatePenaltyRequest": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "example": "2024-07-11T00:00:00.000Z"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2024-07-14T00:00:00.000Z"
+          }
+        }
+      },
+      "UpdatePenaltyUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success update penalty !"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PenaltyObject"
+            }
+          }
+        }
+      },
+      "DeletePenaltyResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success Delete Penalty!"
+          }
+        }
+      },
+      "ForbiddenAccessUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Unauthorized, Forbidden Access!"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "petstore_auth": {
+        "type": "oauth2",
+        "flows": {
+          "implicit": {
+            "authorizationUrl": "https://petstore3.swagger.io/oauth/authorize",
+            "scopes": {
+              "write:pets": "modify pets in your account",
+              "read:pets": "read your pets"
+            }
+          }
+        }
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "api_key": {
+        "type": "apiKey",
+        "name": "api_key",
+        "in": "header"
+      }
+    }
+  }
+}

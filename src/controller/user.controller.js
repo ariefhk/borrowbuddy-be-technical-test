@@ -44,6 +44,7 @@ export class UserController {
         name: loggedUser?.name,
         role: loggedUser?.role,
         email: loggedUser?.email,
+        createdAt: loggedUser?.createdAt,
       };
 
       return res.status(API_STATUS_CODE.OK).json(ResponseHelper.toJson("Success get current User!", getCurrentUserRequest));

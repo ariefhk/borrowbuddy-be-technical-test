@@ -44,7 +44,7 @@ export class PenaltyController {
 
       const result = await PenaltyService.getPenaltyByUserId(getPenaltyCurrentUserRequest);
 
-      return res.status(API_STATUS_CODE.OK).json(ResponseHelper.toJson("Success get penalty user !", result));
+      return res.status(API_STATUS_CODE.OK).json(ResponseHelper.toJson("Success get penalty current user !", result));
     } catch (error) {
       next(error);
     }

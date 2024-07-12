@@ -139,11 +139,6 @@ describe("PUT /api/penalties/:penaltyId", function () {
         endDate: "",
       });
 
-    console.log({
-      existedUserPenalty: existedUserPenalty,
-      result: result.body,
-    });
-
     expect(result.status).toBe(200);
     expect(result.body.data).toBeDefined();
   });

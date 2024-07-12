@@ -278,7 +278,6 @@ export class BorrowService {
             borrowDate: true,
             returnDate: true,
             penaltyApplied: true,
-            createdAt: true,
             user: {
               select: {
                 id: true,
@@ -297,6 +296,7 @@ export class BorrowService {
                 },
               },
             },
+            createdAt: true,
           },
         });
 
@@ -323,6 +323,7 @@ export class BorrowService {
     return {
       id: createBorrowBookProcess.id,
       borrowDate: createBorrowBookProcess.borrowDate,
+      returnDate: createBorrowBookProcess.returnDate,
       user: {
         id: createBorrowBookProcess.user.id,
         code: createBorrowBookProcess.user.code,
@@ -335,6 +336,7 @@ export class BorrowService {
           title: borrowedBood.book.title,
         };
       }),
+      createdAt: createBorrowBookProcess.createdAt,
     };
   }
 
@@ -412,6 +414,7 @@ export class BorrowService {
                 },
               },
             },
+            createdAt: true,
           },
         });
 

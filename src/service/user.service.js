@@ -120,8 +120,8 @@ export class UserService {
         code: user.code,
         name: user.name,
         email: user.email,
-        isDeleted: user.deletedAt ? true : false,
         role: user.role,
+        isDeleted: user.deletedAt ? true : false,
         borrowedBooksCount: user.borrow.reduce((acc, borrow) => acc + borrow._count.borrowBook, 0),
         createdAt: user.createdAt,
       };
@@ -171,9 +171,8 @@ export class UserService {
       code: user.code,
       name: user.name,
       email: user.email,
-      isDeleted: user.deletedAt ? true : false,
       role: user.role,
-      createdAt: user.createdAt,
+      isDeleted: user.deletedAt ? true : false,
       borrowedBooksCount: user.borrow.reduce((acc, borrow) => acc + borrow._count.borrowBook, 0),
       borrowedBooks: user.borrow.flatMap((borrow) => borrow.borrowBook.map((borrowBook) => borrowBook.book)),
       createdAt: user.createdAt,
@@ -394,6 +393,7 @@ export class UserService {
       code: updatedUser.code,
       name: updatedUser.name,
       email: updatedUser.email,
+      role: updatedUser.role,
     };
   }
 
